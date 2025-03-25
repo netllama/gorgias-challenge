@@ -6,8 +6,14 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://netllama@localhost:5432/todo"
-CONN_STRING = os.environ.get("PG_CONNECT_STR")
+
+# CONN_STRING is the string needed to connect to the database and
+# be of the format $USERNAME:$PASSWORD@HOSTNAME:$DB_PORT_NUMBER
+DBUSER = os.environ.get("DBUSER", "postgres")
+DBPASSWD = f':{os.environ.get("DBPASSWD")}' if os.environ.get("DBPASSWD") else ""
+DBHOST = os.environ.get("DBHOST")
+DBPORT = os.environ.get("DBPORT", "5432")
+CONN_STRING = f"{DBUSER}{DBPASSWD}@{DBHOST}:{DBPORT}"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{CONN_STRING}/todo"
 db = SQLAlchemy(app)
 
