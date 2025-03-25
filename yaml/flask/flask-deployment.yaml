@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask
+  labels:
+    app: flask
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+        - name: web
+          image: netllama/gorgias-todo:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DBHOST
+              valueFrom:
+                configMapKeyRef:
+                  name: flask-app-config
+                  key: DBHOST
+            - name: DBUSER
+              valueFrom:
+                secretKeyRef:
+                  name: sql-db-creds
+                  key: dbuser
+            - name: DBPASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: sql-db-creds
+                  key: dbpasswd
