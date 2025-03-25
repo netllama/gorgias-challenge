@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: flask-app-config
 data:
-  DBHOST: "10.64.1.7"
+  DBHOST: "postgres-postgresql-svc"
   
