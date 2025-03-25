@@ -1,0 +1,111 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: postgres-replica-svc
+  labels: &PostgreSQLLabels
+    app.kubernetes.io/name: "postgres"
+    app.kubernetes.io/component: postgresql-server
+spec:
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  selector:
+    statefulset.kubernetes.io/pod-name: postgres-replica-0
+  type: ClusterIP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: postgres-replica-exporter-svc
+  labels: &PostgreSQLLabels
+    app.kubernetes.io/name: "postgres"
+    app.kubernetes.io/component: postgresql-server
+spec:
+  ports:
+  - name: prometheus-exporter
+    port: 9187
+  selector:
+    statefulset.kubernetes.io/pod-name: postgres-replica-0
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+  labels: &PostgreSQLLabels
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: postgresql-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *PostgreSQLLabels
+  serviceName: postgres-replica-svc
+  template:
+    metadata:
+      labels: *PostgreSQLLabels
+    spec:
+      serviceAccount: postgres-postgresql-sa
+      securityContext:
+        fsGroup: 999 # PostgreSQL user group
+      volumes:
+      - name: config-volume
+        configMap:
+          name: postgres-postgresql-config
+      containers:
+      - name: postgresql-server
+        image: "marketplace.gcr.io/google/postgresql:15.3"
+        imagePullPolicy: Always
+        args:
+          - -c
+          - hba_file=/etc/postgresql/volume/pg_hba.conf
+          - -c
+          - config_file=/etc/postgresql/volume/postgresql.conf
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 5432
+          name: postgres
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/postgresql/volume
+        - name: postgres-replica-pvc
+          mountPath: /var/lib/postgresql/data
+        env:
+        - name: "PGDATA"
+          value: "/var/lib/postgresql/data/pgdata"
+        - name: "POSTGRES_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+      - name: prometheus-exporter
+        image: marketplace.gcr.io/google/postgresql/exporter:15.3
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9187
+          name: exporter
+        env:
+        - name: "DATA_SOURCE_URI"
+          value: "localhost:5432/postgres?sslmode=disable"
+        - name: "DATA_SOURCE_USER"
+          value: "postgres"
+        - name: "DATA_SOURCE_PASS"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+      
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-replica-pvc
+      labels: *PostgreSQLLabels
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 10Gi
