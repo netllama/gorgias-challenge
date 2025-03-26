@@ -6,7 +6,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-
 # CONN_STRING is the string needed to connect to the database and
 # be of the format $USERNAME:$PASSWORD@HOSTNAME:$DB_PORT_NUMBER
 DBUSER = os.environ.get("DBUSER", "postgres")
@@ -15,6 +14,10 @@ DBHOST = os.environ.get("DBHOST")
 DBPORT = os.environ.get("DBPORT", "5432")
 CONN_STRING = f"{DBUSER}{DBPASSWD}@{DBHOST}:{DBPORT}"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{CONN_STRING}/todo"
+# deal with random closed connections:
+# (psycopg2.OperationalError) server closed the connection unexpectedly
+# due to pool timeouts in a relatively low RPS environment
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 db = SQLAlchemy(app)
 
 
@@ -50,8 +53,9 @@ def add():
 def update(todo_id):
     # toggle status of item
     todo = TodoList.query.filter_by(id=todo_id).first()
-    todo.completed = not todo.completed
-    db.session.commit()
+    if getattr(todo, "id", None):
+        todo.completed = not todo.completed
+        db.session.commit()
     return redirect(url_for("home"))
 
 
@@ -59,8 +63,9 @@ def update(todo_id):
 def delete(todo_id):
     # delete item
     todo = TodoList.query.filter_by(id=todo_id).first()
-    db.session.delete(todo)
-    db.session.commit()
+    if getattr(todo, "id", None):
+        db.session.delete(todo)
+        db.session.commit()
     return redirect(url_for("home"))
 
 
