@@ -66,22 +66,6 @@ spec:
             secretKeyRef:
               name: postgres-secret
               key: password
-      - name: prometheus-exporter
-        image: marketplace.gcr.io/google/postgresql/exporter:15.3
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 9187
-          name: exporter
-        env:
-        - name: "DATA_SOURCE_URI"
-          value: "localhost:5432/postgres?sslmode=disable"
-        - name: "DATA_SOURCE_USER"
-          value: "postgres"
-        - name: "DATA_SOURCE_PASS"
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: password
       
   volumeClaimTemplates:
   - metadata:
