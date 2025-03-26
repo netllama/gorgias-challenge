@@ -14,21 +14,6 @@ spec:
     statefulset.kubernetes.io/pod-name: postgres-postgresql-0
   type: ClusterIP
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: postgres-postgres-exporter-svc
-  labels: &PostgreSQLLabels
-    app.kubernetes.io/name: "postgres"
-    app.kubernetes.io/component: postgresql-server
-spec:
-  ports:
-  - name: prometheus-exporter
-    port: 9187
-  selector:
-    statefulset.kubernetes.io/pod-name: postgres-postgresql-0
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
